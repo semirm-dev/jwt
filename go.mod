@@ -1,4 +1,4 @@
-module github.com/gobackpack/jwt
+module github.com/semirm-dev/jwt
 
 go 1.27.1
 

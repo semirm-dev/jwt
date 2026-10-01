@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gobackpack/jwt"
+	"github.com/semirm-dev/jwt"
 	jwtLib "github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
