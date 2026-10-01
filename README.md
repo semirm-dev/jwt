@@ -1,4 +1,4 @@
-![alt Go](https://img.shields.io/github/go-mod/go-version/gobackpack/jwt)
+![Go](https://img.shields.io/github/go-mod/go-version/semirm-dev/jwt)
 
 Small EdDSA (Ed25519) JWT library with safe defaults.
 
