@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	jwtLib "github.com/golang-jwt/jwt/v5"
@@ -50,6 +51,10 @@ func NewSigner(kid string, key ed25519.PrivateKey, cfg Config) (*Signer, error) 
 
 // Sign returns a token for the subject. exp, nbf, iat, iss, aud and jti are always set by the signer.
 func (s *Signer) Sign(subject string, data map[string]any) (string, error) {
+	if subject == "" {
+		return "", errors.New("subject is required")
+	}
+
 	jti := make([]byte, 16)
 	if _, err := rand.Read(jti); err != nil {
 		return "", err
@@ -85,7 +90,7 @@ func NewVerifier(keys map[string]ed25519.PublicKey, cfg Config) (*Verifier, erro
 		return nil, err
 	}
 
-	return &Verifier{keys: keys, cfg: cfg}, nil
+	return &Verifier{keys: maps.Clone(keys), cfg: cfg}, nil
 }
 
 // Verify checks signature, algorithm, kid, exp, nbf, iat, iss and aud.

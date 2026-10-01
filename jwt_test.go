@@ -151,3 +151,25 @@ func TestConstructors_Validation(t *testing.T) {
 	_, err = jwt.NewVerifier(keys, jwt.Config{TTL: time.Minute})
 	assert.Error(t, err)
 }
+
+func TestSign_EmptySubject(t *testing.T) {
+	s, _, _ := setup(t)
+
+	token, err := s.Sign("", nil)
+	assert.Error(t, err)
+	assert.Empty(t, token)
+}
+
+func TestNewVerifier_CopiesKeys(t *testing.T) {
+	pub, priv := newKey(t)
+	keys := map[string]ed25519.PublicKey{"k1": pub}
+	s, _ := jwt.NewSigner("k1", priv, cfg)
+	v, err := jwt.NewVerifier(keys, cfg)
+	require.NoError(t, err)
+
+	delete(keys, "k1")
+
+	token, _ := s.Sign("u", nil)
+	_, err = v.Verify(token)
+	assert.NoError(t, err)
+}
