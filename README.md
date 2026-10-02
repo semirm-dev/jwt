@@ -46,6 +46,16 @@ Keys are read at construction. To rotate without a restart, build a new `Verifie
 
 Send tokens over TLS only, keep access TTLs short, and keep PII out of `Data`.
 
+### Examples
+Runnable key generation, issuer and verifier (with hot key reload) in [examples/](examples/):
+```shell
+go run ./examples/keygen 2026-01      # writes keys/2026-01.pub, prints JWT_KID / JWT_PRIVATE_KEY exports
+export JWT_KID=... JWT_PRIVATE_KEY=...
+go run ./examples/issuer              # :8081  POST /login?user=user-1
+go run ./examples/verifier            # :8080  GET /me  (Authorization: Bearer <token>)
+```
+To rotate: `go run ./examples/keygen 2026-10`, wait ~5s for the verifier to reload, restart the issuer with the new exports, and delete the old `keys/*.pub` after one TTL.
+
 ### Run tests
 ```shell
 make test-cover
