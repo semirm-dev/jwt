@@ -18,7 +18,31 @@ verifier, _ := jwt.NewVerifier(map[string]ed25519.PublicKey{"key-2024-01": pub},
 claims, err := verifier.Verify(token) // errors.Is(err, jwt.ErrExpired / jwt.ErrInvalid)
 ```
 
-Rotation: add the new public key to verifiers, switch the signer to the new key/kid, remove the old public key after `TTL` has passed.
+### Key IDs (`kid`) and rotation
+
+`kid` is a non-secret label in the token header naming the key that signed it. The verifier uses it to pick the public key. Use any unique string (e.g. `2026-10`) and never reuse one for a different key.
+
+| Service  | Holds                                        |
+|----------|----------------------------------------------|
+| Issuer   | current private key + its kid (secret manager, never in the repo) |
+| Verifier | map of kid -> public key for every key still valid (not secret)   |
+
+```go
+verifier, _ := jwt.NewVerifier(map[string]ed25519.PublicKey{
+    "2026-10": currentPub,
+    "2026-01": previousPub, // keep until tokens signed with it expire
+}, cfg)
+```
+
+Rotate every 3-12 months, in this order:
+1. Generate a new key pair and kid.
+2. Deploy the new public key to all verifiers, next to the old one.
+3. Switch the issuer to the new private key and kid.
+4. After at least one `TTL`, remove the old public key and delete the old private key.
+
+Do not switch the issuer before every verifier knows the new key. If a private key leaks, skip the grace period and drop its public key immediately (users must sign in again).
+
+Keys are read at construction. To rotate without a restart, build a new `Verifier` and swap it in (e.g. `atomic.Pointer[jwt.Verifier]`), or just redeploy.
 
 Send tokens over TLS only, keep access TTLs short, and keep PII out of `Data`.
 
