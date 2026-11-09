@@ -93,7 +93,7 @@ func NewVerifier(keys map[string]ed25519.PublicKey, cfg Config) (*Verifier, erro
 	return &Verifier{keys: maps.Clone(keys), cfg: cfg}, nil
 }
 
-// Verify checks signature, algorithm, kid, exp, nbf, iat, iss and aud.
+// Verify checks signature, algorithm and kid, and requires exp, nbf, iat, iss, aud, sub and jti.
 // Returned error wraps ErrExpired or ErrInvalid.
 func (v *Verifier) Verify(token string) (*Claims, error) {
 	claims := &Claims{}
@@ -102,6 +102,7 @@ func (v *Verifier) Verify(token string) (*Claims, error) {
 		jwtLib.WithIssuer(v.cfg.Issuer),
 		jwtLib.WithAudience(v.cfg.Audience),
 		jwtLib.WithExpirationRequired(),
+		jwtLib.WithNotBeforeRequired(),
 		jwtLib.WithIssuedAt(),
 		jwtLib.WithLeeway(leeway),
 	)
@@ -110,6 +111,10 @@ func (v *Verifier) Verify(token string) (*Claims, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalid, err)
+	}
+	// golang-jwt checks iat only when present, and never requires sub or jti.
+	if claims.IssuedAt == nil || claims.Subject == "" || claims.ID == "" {
+		return nil, fmt.Errorf("%w: missing iat, sub or jti", ErrInvalid)
 	}
 
 	return claims, nil

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/semirm-dev/jwt"
 	jwtLib "github.com/golang-jwt/jwt/v5"
+	"github.com/semirm-dev/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,8 +41,12 @@ func forge(t *testing.T, method jwtLib.SigningMethod, kid string, key any, c jwt
 func validClaims() jwtLib.RegisteredClaims {
 	return jwtLib.RegisteredClaims{
 		Issuer:    "auth",
+		Subject:   "user-1",
 		Audience:  jwtLib.ClaimStrings{"api"},
 		ExpiresAt: jwtLib.NewNumericDate(time.Now().Add(time.Minute)),
+		NotBefore: jwtLib.NewNumericDate(time.Now()),
+		IssuedAt:  jwtLib.NewNumericDate(time.Now()),
+		ID:        "jti-1",
 	}
 }
 
@@ -94,12 +98,24 @@ func TestVerify_Invalid(t *testing.T) {
 	wrongIss.Issuer = "evil"
 	wrongAud := validClaims()
 	wrongAud.Audience = jwtLib.ClaimStrings{"other"}
+	noSub := validClaims()
+	noSub.Subject = ""
+	noNbf := validClaims()
+	noNbf.NotBefore = nil
+	noIat := validClaims()
+	noIat.IssuedAt = nil
+	noJti := validClaims()
+	noJti.ID = ""
 	notYet := validClaims()
 	notYet.NotBefore = jwtLib.NewNumericDate(time.Now().Add(time.Hour))
 
 	hmacKey := []byte(pub) // algorithm confusion: HMAC keyed with the public key
 	cases := map[string]string{
 		"missing exp":     forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, noExp),
+		"missing sub":     forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, noSub),
+		"missing nbf":     forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, noNbf),
+		"missing iat":     forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, noIat),
+		"missing jti":     forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, noJti),
 		"wrong issuer":    forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, wrongIss),
 		"wrong audience":  forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, wrongAud),
 		"not yet valid":   forge(t, jwtLib.SigningMethodEdDSA, "k1", priv, notYet),
